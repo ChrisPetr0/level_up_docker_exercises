@@ -1,0 +1,38 @@
+services:
+  db:
+    image: mysql:8.0                              # Pre-built MySQL 8.0 image from Docker Hub
+    volumes:
+      - db_data:/var/lib/mysql                    # Named volume mount for database persistence
+    restart: always                               # Auto-restart container on failure
+    environment:                                  # Environment variables passed to container
+      MYSQL_ROOT_PASSWORD: wordpress_root_pass    # Root user password
+      MYSQL_DATABASE: wordpress                   # Database to create on startup
+      MYSQL_USER: wordpress                       # Non-root user to create
+      MYSQL_PASSWORD: wordpress_pass              # Password for wordpress user
+    networks:
+      - wordpress-network                         # Connect to custom network
+
+  wordpress:
+    depends_on:                                   # Start order: db must start first
+      - db
+    image: wordpress:latest                       # Pre-built WordPress image (PHP + Apache)
+    ports:
+      - "8080:80"                                 # Port mapping: host:container
+    restart: always                               # Auto-restart container on failure
+    environment:                                  # Environment variables for WordPress config
+      WORDPRESS_DB_HOST: db:3306                  # Database hostname (service name) and port
+      WORDPRESS_DB_USER: wordpress                # Database username
+      WORDPRESS_DB_PASSWORD: wordpress_pass       # Database password
+      WORDPRESS_DB_NAME: wordpress                # Database name to use
+    volumes:
+      - wordpress_data:/var/www/html              # Named volume mount for WordPress files (uploads, plugins, themes)
+    networks:
+      - wordpress-network                         # Connect to same network as db
+
+volumes:
+  db_data:                                        # Named volume for MySQL data (persists across restarts)
+  wordpress_data:                                 # Named volume for WordPress files (persists across restarts)
+
+networks:
+  wordpress-network:                              # Custom bridge network for service isolation
+    driver: bridge                                # Bridge driver enables DNS resolution between services

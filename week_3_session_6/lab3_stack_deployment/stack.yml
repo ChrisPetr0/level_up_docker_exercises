@@ -1,0 +1,77 @@
+services:
+  # Frontend web server - serves static content
+  web:
+    image: nginx
+    ports:
+      - "8080:80"  # Expose on host port 8080
+    networks:
+      - frontend  # Connected to frontend network only
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      replicas: 3  # Run 3 instances for high availability
+      update_config:
+        parallelism: 1  # Update one container at a time
+        delay: 10s      # Wait 10 seconds between updates
+      restart_policy:
+        condition: on-failure  # Only restart if container fails
+
+  # API service - returns container info and demonstrates multi-network connectivity
+  api:
+    image: myapp-api  # Use pre-built image (build first with: docker build -t myapp-api .)
+    ports:
+      - "8000:8000"  # Expose API on host port 8000
+    networks:
+      - frontend  # Accessible from web service
+      - backend   # Can communicate with Redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      replicas: 2  # Run 2 instances
+      restart_policy:
+        condition: on-failure
+
+  # Redis cache - backend data store
+  redis:
+    image: redis:alpine
+    networks:
+      - backend  # Only backend network - isolated from web
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      replicas: 1  # Single instance (stateful service)
+      placement:
+        constraints:
+          - node.role == manager  # Only run on manager nodes for stability
+
+  # Visualizer - shows real-time cluster state
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8081:8080"  # Access visualizer at http://localhost:8081
+    volumes:
+      # Mount Docker socket so visualizer can query Swarm API for cluster state
+      # /var/run/docker.sock is the Unix socket Docker daemon listens on
+      # This gives the container direct access to Docker API (read-only usage here)
+      # WARNING: Mounting the socket grants significant privileges - only do for trusted images
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager  # Must run on manager to access Swarm API
+
+# Network isolation: frontend for public-facing, backend for internal services
+networks:
+  frontend:
+    driver: overlay  # Overlay network spans all Swarm nodes, enables cross-host communication
+  backend:
+    driver: overlay  # Also overlay, but logically separate for security isolation

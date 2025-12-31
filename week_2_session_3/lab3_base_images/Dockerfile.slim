@@ -1,0 +1,12 @@
+FROM node:18-slim
+
+# Slim is balanced between size and functionality
+# Size: ~150-200MB
+# Good for most applications
+
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY app.js .
+EXPOSE 3000
+CMD ["npm", "start"]

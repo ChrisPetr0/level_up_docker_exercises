@@ -1,0 +1,12 @@
+FROM node:18-alpine
+WORKDIR /app
+
+# BAD ORDER: Copy everything first
+# This invalidates cache whenever ANY file changes
+COPY . .
+
+# Install dependencies - runs every time now!
+RUN npm install
+
+EXPOSE 3000
+CMD ["npm", "start"]

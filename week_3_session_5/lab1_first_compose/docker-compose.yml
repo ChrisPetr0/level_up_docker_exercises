@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .                                      # Build image from Dockerfile in current directory
+    ports:
+      - "8080:3000"                               # Port mapping: host:container
+    volumes:
+      - ./app.js:/app/app.js:ro                   # Bind mount (ro=read-only) for live code editing
+    environment:
+      - REDIS_HOST=redis                          # Environment variable: hostname of Redis service
+    depends_on:                                   # Start order: redis must start first
+      - redis
+    container_name: my-first-compose-app          # Custom container name (optional)
+    restart: unless-stopped                       # Auto-restart unless manually stopped
+
+  redis:
+    image: redis:7-alpine                         # Pre-built Redis 7 Alpine image from Docker Hub
+    container_name: redis-counter                 # Custom container name (optional)
+    restart: unless-stopped                       # Auto-restart unless manually stopped
+    # No ports exposed - only accessible within compose network via service name 'redis'

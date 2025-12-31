@@ -1,0 +1,12 @@
+FROM node:18
+
+# Full image includes build tools and everything
+# Size: ~900MB-1GB
+# Best for development or complex native dependencies
+
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY app.js .
+EXPOSE 3000
+CMD ["npm", "start"]

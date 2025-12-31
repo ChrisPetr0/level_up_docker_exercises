@@ -1,0 +1,6 @@
+# Never commit actual environment files
+.env
+*.env
+
+# Allow the example template
+!.env.example

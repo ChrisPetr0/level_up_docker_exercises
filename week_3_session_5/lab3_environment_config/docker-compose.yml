@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:15-alpine                          # PostgreSQL database, lightweight Alpine Linux
+    container_name: postgres-${ENVIRONMENT}            # Dynamic container name from .env (e.g., postgres-development)
+    restart: always                                     # Restart container automatically if it crashes
+    environment:                                        # Environment variables loaded from .env file
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}          # Database password (set in .env)
+      POSTGRES_USER: ${POSTGRES_USER}                  # Database user (set in .env)
+      POSTGRES_DB: ${POSTGRES_DB}                      # Database name (set in .env)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data         # Named volume: persistent database storage
+    networks:
+      - db-network                                      # Custom network for service communication
+    healthcheck:                                        # Health check to verify database is ready
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]  # Check if PostgreSQL accepts connections
+      interval: 10s                                     # Check every 10 seconds
+      timeout: 5s                                       # Timeout after 5 seconds
+      retries: 5                                        # Retry 5 times before marking unhealthy
+
+  adminer:
+    image: adminer:latest                               # Web-based database management tool
+    container_name: adminer-${ENVIRONMENT}              # Dynamic container name from .env (e.g., adminer-development)
+    restart: always                                     # Restart container automatically if it crashes
+    ports:
+      - "${ADMIN_PORT}:8080"                            # Dynamic port mapping (host:container) from .env
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres                  # Default server connection (service name)
+      ADMINER_DESIGN: nette                             # UI theme for Adminer
+    depends_on:
+      - postgres                                        # Start postgres service first
+    networks:
+      - db-network                                      # Same network as postgres for DNS resolution
+
+volumes:
+  postgres_data:                                        # Named volume definition (persists after 'down')
+
+networks:
+  db-network:                                           # Custom network definition
+    driver: bridge                                      # Bridge driver for container communication
